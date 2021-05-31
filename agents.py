@@ -48,7 +48,7 @@ class DebateAgent(Agent):
         better_strategies = []
         original_value = self.model.semantic.get_argument_value(public_graph.get_issue(), public_graph )
         print('Original value : ', original_value )
-        unpublished_arguments = self.opinion_graph.get_graph().nodes - public_graph.get_graph().nodes
+        unpublished_arguments = self.opinion_graph.nodes - public_graph.nodes
         for arg in unpublished_arguments:
             print("Testing argument ", arg)
             edges = self.opinion_graph.get_edges_between(arg, public_graph )
@@ -62,10 +62,15 @@ class DebateAgent(Agent):
                     better_strategies += [(arg, edges)]
         
         return better_strategies
+    
+
+    def __str__(self) -> str:
+        return str(self.name)
+    
+    def __repr__(self):
+        return self.__str__()
         
 
-
-        
 
     def step(self):
 
@@ -92,37 +97,37 @@ class DebateAgent(Agent):
         
         return strategy
     
-    def upvote(self, arg ):
-        """ Upvoting an argument
-        """ 
-        arg.add_upvote()
-
-    def downvote(self, arg ):
-        """ Upvoting an argument
-        """ 
-        arg.add_downvote()
-    
     def learn(self, arg, edges):
         self.opinion_graph.add_node(arg)
         self.opinion_graph.add_edges_from(edges)
     
     def learn_and_vote(self):
-        print("Agent ", self.name, " is voting")
-        unknown_arguments = self.model.public_graph.get_graph().nodes - self.opinion_graph.get_graph().nodes
-        for arg in unknown_arguments:
-            print(arg)
-            if self.learning_strategy(arg):
-                edges = public_graph.get_edges_between(arg, self.opinion_graph)
-                self.learn(arg, edges)
-                self.upvote(arg)
-            else:
-                self.downvote(arg)
+        #print("Agent ", self.name, " is voting")
 
+        previous_graph = self.model.state[-1]
+        new_arguments = self.model.public_graph.nodes - previous_graph.nodes
+
+        unknown_arguments = new_arguments - self.opinion_graph.nodes
+        
+        # upvoting the arguments already in the opinion graph
+        
+        for arg in list(set(new_arguments) - set(unknown_arguments)):
+            if not self.model.public_graph.check_if_agent_already_voted(arg, self):
+                self.model.public_graph.add_upvote(arg, self)
+        
+        for arg in unknown_arguments:
+            if not self.model.public_graph.check_if_agent_already_voted(arg, self):
+                if self.learning_strategy(arg):
+                    edges = self.model.public_graph.get_edges_between(arg, self.opinion_graph)
+                    self.learn(arg, edges)
+                    self.model.public_graph.add_upvote(arg, self)
+                else:
+                    self.model.public_graph.add_downvote(arg, self)
 
     
     def advance(self):
         # model implement strategy
-        self.model.implement_strategy( self.current_strategy)
+        self.model.implement_strategy( self.current_strategy, self)
 
         
         

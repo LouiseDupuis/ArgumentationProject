@@ -12,7 +12,7 @@ from agents import DebateAgent
 seed = 444
 
 nb_of_iterations = 10
-nb_of_arguments = 3
+nb_of_arguments = 6
 nb_agents = 3
 p = 0.1
 threshold = 0.5
@@ -27,5 +27,5 @@ argument_graph = DebateGraph()
 argument_graph.random_initialize(nb_of_arguments, p=p)
 
 debate_model = OnlineDebate(nb_agents, argument_graph, Hbs, threshold)
-debate_model.run_model(2)
+debate_model.run_model(100)
 

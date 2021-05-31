@@ -2,6 +2,7 @@ from graphs import DebateGraph, OpinionGraph
 from argument import Argument
 import networkx as nx
 from semantic import GradualSemantic, scoring_function_hbs
+from model import OnlineDebate
 
 def test_1():
     for i in range(2, 25):
@@ -50,7 +51,7 @@ def test_scoring_weights():
     print()
 
     
-    for a in g.get_graph().nodes:
+    for a in g.nodes:
         print(a)
         for i in range(5):
             S = scoring_function_hbs(a, i, g)
@@ -68,7 +69,7 @@ def test_semantic_no_weights():
 
     S = GradualSemantic(scoring_function_hbs, 100)
 
-    for a in g.get_graph().nodes:
+    for a in g.nodes:
         print(a)
         V = S.get_argument_value(a, g)
         print(V)
@@ -81,7 +82,7 @@ def test_semantic_weights():
     
     S = GradualSemantic(scoring_function_hbs, 100)
 
-    for a in g.get_graph().nodes:
+    for a in g.nodes:
             print(a)
             V = S.get_argument_value(a, g)
             print(V)
@@ -89,7 +90,6 @@ def test_semantic_weights():
 
 #test_semantic_no_weights()
 
-arg = Argument()
 def test_vote_propagation(arg):
     g = DebateGraph(arg)
 
@@ -99,5 +99,35 @@ def test_vote_propagation(arg):
 
     g.view_edges()
 
-test_vote_propagation(arg)
-print(arg)
+
+def test_newg():
+    g = DebateGraph()
+    g.random_initialize(3)
+
+    g.view_edges()
+    print(g.nodes)
+    print(g.nodes[g.get_issue()])
+
+def test_graph_copy():
+    g = DebateGraph()
+    g.random_initialize(3)
+
+    g.view_graph()
+    n = g.special_copy()
+    n.view_graph()
+
+
+def test_previous_graph():
+    g = DebateGraph()
+    print(g)
+    g.random_initialize(3)
+    Hbs = GradualSemantic(scoring_function_hbs, 10)
+
+    m = OnlineDebate(2, g, Hbs, 0.5)
+    m.run_model(3)
+    print(m.get_previous_graph())
+    print(m.state)
+    print(m.state[0])
+    print(m.state[-1])
+
+test_previous_graph()

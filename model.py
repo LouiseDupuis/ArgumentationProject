@@ -1,5 +1,6 @@
 
 
+from copy import Error
 from agents import DebateAgent
 from graphs import DebateGraph
 from mesa import Model
@@ -7,6 +8,7 @@ from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 from schedule import SimultaneousDebateActivation
 from learning import learn_all, learn_nothing
+
 
 class OnlineDebate(Model):
     """
@@ -41,18 +43,20 @@ class OnlineDebate(Model):
         
         self.schedule = SimultaneousDebateActivation(self)
 
-        self.strategies = dict() # a dictionnary keeping track of all of the agent's strategies
+        self.state = [] # a list keeping track of all of the previous states of the game
+        self.strategies = [] # a list keeping track of all of the agent's strategies during the game
 
         print("=============== MODEL INITIALIZATION =========================================")
         print()
         print("Global Argument Graph for the game : ")
-        self.argument_graph.view_edges()
+        self.argument_graph.view_graph()
         
         # Create each agent and their opinion graph
         for i in range(num_agents):
             print()
-            opinion_graph = argument_graph.create_subgraph()
-            opinion_graph.view_edges()
+            print("Agent ", i)
+            opinion_graph = argument_graph.create_subgraph_new()
+            opinion_graph.view_graph()
             agent = DebateAgent(i, model=self, opinion_graph = opinion_graph, learning_strategy=learn_nothing, threshold=threshold)
             self.schedule.add(agent)
 
@@ -60,11 +64,25 @@ class OnlineDebate(Model):
     def get_semantic(self):
         return self.semantic
     
-    def implement_strategy(self, strategy):
-        #self.strategies
+    def implement_strategy(self, strategy, agent):
+        self.strategies[-1][agent] =  strategy
         if strategy != 'NOTHING':
             self.public_graph.add_node(strategy[0])
             self.public_graph.add_edges_from(strategy[1])
+            self.public_graph.add_upvote(strategy[0], agent)
+    
+    def get_previous_graph(self):
+        """ Returns the public graph from the last step
+        """
+        if len(self.state) < 1:
+            raise Error("There is no previous graph to return")
+        return self.state[-1]
+
+    def check_equilibrium(self):
+        for s in self.strategies[-1].values():
+            if s != 'NOTHING':
+                return False
+        return True
 
         
     def step(self, i):
@@ -73,8 +91,9 @@ class OnlineDebate(Model):
         print("------------------ Step ", i, "---------------------------------------")
         print()
         print("Current Public Graph : ")
-        self.public_graph.view_edges()
-        self.strategies[i] = dict()
+        self.public_graph.view_graph()
+        self.state += [self.public_graph.special_copy()]
+        self.strategies += [dict()]
         self.schedule.step()
         print()
         # Collect data
@@ -83,4 +102,9 @@ class OnlineDebate(Model):
     def run_model(self, step_count=10):
         for i in range(step_count):
             self.step(i)
+            if self.check_equilibrium():
+                break
+        
+        print("====================================== Debate Over ============================================")
+        print("Final Value of the Issue : ", self.semantic.get_argument_value(self.public_graph.get_issue(), self.public_graph))
 

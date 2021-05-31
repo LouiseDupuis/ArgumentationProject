@@ -1,5 +1,6 @@
 
 import copy
+from graphs import OpinionGraph
 
 class GradualSemantic():
     """ A gradual Semantic which can compute the overall strength of the arguments of a weighted graph
@@ -20,7 +21,7 @@ class GradualSemantic():
         """
 
         #original_value = self.get_argument_value(debate_graph.get_issue(), debate_graph)
-        new_graph = debate_graph.copy()
+        new_graph = debate_graph.special_copy()
         new_graph.add_node(arg)
         new_graph.add_edges_from(edges)
         new_value = self.get_argument_value(new_graph.get_issue(), new_graph)
@@ -38,12 +39,14 @@ def scoring_function_hbs(a, i, debate_graph):
         debate_graph = an instance of the DebateGraph class
         weights = wether to take into account the graph's weights or consider it as a flat graph
     """
+
+    weight = debate_graph.get_argument_weight(a)
     if i == 0:
-        return a.get_weight()
-    B = debate_graph.get_attacking_nodes(a)
+        return weight
+    B = list(debate_graph.predecessors(a))
     if len(B) == 0:
-        return a.get_weight()
-    f = a.get_weight() / (1 + sum([scoring_function_hbs(b, i-1, debate_graph) for b in B]))
+        return weight
+    f = weight / (1 + sum([scoring_function_hbs(b, i-1, debate_graph) for b in B]))
     return f
 
 
