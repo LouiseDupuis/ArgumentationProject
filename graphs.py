@@ -133,7 +133,7 @@ class DebateGraph(nx.DiGraph):
         current_node = self.issue
 
         # building loop
-        while s_graph.get_size() < S:
+        while s_graph.get_size() < S-1:
 
             #selecting a random edge 
             edges_toward_cn = [e for e in list(self.in_edges(current_node)) if e[0] not in s_graph.nodes]
@@ -165,8 +165,8 @@ class DebateGraph(nx.DiGraph):
         # generating a random size for the subgraph
         S = random.randint(2, self.get_size())
         print("Size of subgraph : ", S)
-        random_nodes = random.sample(list(self.nodes), S)
-        sub_graph = copy.deepcopy(self.subgraph(random_nodes))
+        random_nodes = random.sample(list(self.nodes - set([self.issue ])), S -1)
+        sub_graph = copy.deepcopy(self.subgraph(random_nodes + [self.issue]))
         return OpinionGraph(self, self.issue, sub_graph)
 
     

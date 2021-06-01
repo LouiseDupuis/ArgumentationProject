@@ -21,7 +21,7 @@ class OnlineDebate(Model):
     )
 
     def __init__(
-        self, num_agents, argument_graph, semantic, threshold, learning_strategy
+        self, num_agents, argument_graph, semantic, threshold, learning_strategy, subgraph_creation
     ):
         """
         Create a new model with the given parameters.
@@ -38,6 +38,7 @@ class OnlineDebate(Model):
         self.argument_graph = argument_graph
         self.semantic = semantic
         self.threshold = threshold
+        self.subgraph_creation = subgraph_creation
 
         self.public_graph = DebateGraph(argument_graph.get_issue())
         
@@ -53,15 +54,20 @@ class OnlineDebate(Model):
         print("Global Argument Graph for the game : ")
         self.argument_graph.view_graph()  #printing graph on command line
         self.argument_graph.draw(self.get_time(), "Argument Graph")
+        print("Value of the Issue : ", self.semantic.get_argument_value(self.argument_graph.get_issue(), self.argument_graph))
         
         # Create each agent and their opinion graph
         for i in range(num_agents):
             print()
             print("Agent ", i)
-            opinion_graph = argument_graph.create_subgraph_new()
+            if self.subgraph_creation == 'random':
+                opinion_graph = argument_graph.create_subgraph_new()
+            elif self.subgraph_creation == 'custom':
+                opinion_graph = argument_graph.create_subgraph()
             opinion_graph.view_graph()
-            opinion_graph.draw(self.get_time(), "Agent " + str(i))
+            
             agent = DebateAgent(i, model=self, opinion_graph = opinion_graph, learning_strategy=learning_strategy, threshold=threshold)
+            opinion_graph.draw(self.get_time(), "Agent " + str(i) + ' ' + agent.get_position(self.semantic, self.threshold))
             self.schedule.add(agent)
 
 
