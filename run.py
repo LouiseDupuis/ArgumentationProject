@@ -5,6 +5,8 @@ from graphs import DebateGraph
 import random
 
 from agents import DebateAgent
+from learning import learn_all, learn_nothing
+
 
 # Hyperparameters 
 #seed = 11111
@@ -12,10 +14,11 @@ from agents import DebateAgent
 seed = 444
 
 nb_of_iterations = 10
-nb_of_arguments = 6
-nb_agents = 3
+nb_of_arguments = 10
+nb_agents = 5
 p = 0.1
 threshold = 0.5
+learning_strategy = learn_all
 
 # Initialization 
 random.seed(seed)
@@ -26,6 +29,8 @@ argument_graph = DebateGraph()
 # for now for the tests 
 argument_graph.random_initialize(nb_of_arguments, p=p)
 
-debate_model = OnlineDebate(nb_agents, argument_graph, Hbs, threshold)
+debate_model = OnlineDebate(nb_agents, argument_graph, Hbs, threshold, learning_strategy=learning_strategy)
 debate_model.run_model(100)
+
+debate_model.public_graph.draw( debate_model.get_time(), "Final_graph")
 

@@ -7,8 +7,8 @@ from mesa import Model
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 from schedule import SimultaneousDebateActivation
-from learning import learn_all, learn_nothing
-
+import time 
+from datetime import datetime
 
 class OnlineDebate(Model):
     """
@@ -21,7 +21,7 @@ class OnlineDebate(Model):
     )
 
     def __init__(
-        self, num_agents, argument_graph, semantic, threshold
+        self, num_agents, argument_graph, semantic, threshold, learning_strategy
     ):
         """
         Create a new model with the given parameters.
@@ -43,13 +43,16 @@ class OnlineDebate(Model):
         
         self.schedule = SimultaneousDebateActivation(self)
 
+        self.time = datetime.now() # a time marker to help save all relevant informations
+
         self.state = [] # a list keeping track of all of the previous states of the game
         self.strategies = [] # a list keeping track of all of the agent's strategies during the game
 
         print("=============== MODEL INITIALIZATION =========================================")
         print()
         print("Global Argument Graph for the game : ")
-        self.argument_graph.view_graph()
+        self.argument_graph.view_graph()  #printing graph on command line
+        self.argument_graph.draw(self.get_time(), "Argument Graph")
         
         # Create each agent and their opinion graph
         for i in range(num_agents):
@@ -57,12 +60,16 @@ class OnlineDebate(Model):
             print("Agent ", i)
             opinion_graph = argument_graph.create_subgraph_new()
             opinion_graph.view_graph()
-            agent = DebateAgent(i, model=self, opinion_graph = opinion_graph, learning_strategy=learn_nothing, threshold=threshold)
+            opinion_graph.draw(self.get_time(), "Agent " + str(i))
+            agent = DebateAgent(i, model=self, opinion_graph = opinion_graph, learning_strategy=learning_strategy, threshold=threshold)
             self.schedule.add(agent)
 
 
     def get_semantic(self):
         return self.semantic
+    
+    def get_time(self):
+        return self.time
     
     def implement_strategy(self, strategy, agent):
         self.strategies[-1][agent] =  strategy

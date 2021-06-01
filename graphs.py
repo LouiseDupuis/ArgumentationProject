@@ -5,6 +5,8 @@ from argument import Argument
 from networkx.classes.function import set_node_attributes
 import copy
 import matplotlib.pyplot as plt
+import re
+from pathlib import Path
 
 
 
@@ -178,6 +180,21 @@ class DebateGraph(nx.DiGraph):
         print("Edges")
         for edge in self.edges:
             print(edge[0], " ===> ",edge[1])
+    
+    def draw(self, time, title):
+        """
+        This function draws a graph and saves the image
+        """
+        path = 'Figs/' + re.sub(  "\:", "_", str(time)) + '/'   # sub to avoid filename errors
+        Path(path).mkdir(parents=True, exist_ok=True)
+        plt.figure(figsize=(10,5))
+        ax = plt.gca()
+        ax.set_title(title)
+        nx.draw(self, pos=nx.spring_layout(self), labels = {n:str(n) for n in self.nodes})
+        plt.savefig( path +title + '.png', format ="PNG" )
+        plt.show()
+         
+
         
     
     def __str__(self) -> str:
@@ -195,6 +212,7 @@ class DebateGraph(nx.DiGraph):
     def add_node(self, node):
         if node not in self:
             self.add_nodes_from([(node, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []})])
+
     
 
 

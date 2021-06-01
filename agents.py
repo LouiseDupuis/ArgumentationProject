@@ -80,6 +80,7 @@ class DebateAgent(Agent):
         # 1 : position
         self.get_position(self.model.get_semantic(), self.threshold)
         print("Agent's position : ", self.position )
+        self.opinion_graph.view_graph()
 
         # choosing amongst the better strategies 
         better_strategies = self.get_better_strategies(public_graph)
