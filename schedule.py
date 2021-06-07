@@ -19,6 +19,8 @@ class SimultaneousDebateActivation(SimultaneousActivation):
         for agent_key in agent_keys:
             self._agents[agent_key].advance()
         for agent_key in agent_keys:
-            self._agents[agent_key].learn_and_vote()
+            self._agents[agent_key].learn()
+        for agent_key in agent_keys:
+            self._agents[agent_key].vote()
         self.steps += 1
         self.time += 1

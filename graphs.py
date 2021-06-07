@@ -7,8 +7,11 @@ import copy
 import matplotlib.pyplot as plt
 import re
 from pathlib import Path
+import math
 
 
+def sigmoid(x):
+  return 1 / (1 + math.exp(-x))
 
 
 
@@ -44,12 +47,13 @@ class DebateGraph(nx.DiGraph):
     
 
     def get_argument_weight(self, arg):
+        if arg == self.issue:
+            return 0.75
         upvotes = self.nodes[arg]["upvotes"]
         downvotes = self.nodes[arg]["downvotes"]
-        
         if upvotes == downvotes == 0:
-            return 1
-        return max(upvotes - downvotes, 0)
+            return 0.5 # to avoid division by zero
+        return sigmoid( 2.5 * (upvotes - downvotes)/(upvotes + downvotes))
     
     
     def add_upvote(self, arg, agent):
@@ -112,9 +116,6 @@ class DebateGraph(nx.DiGraph):
                     seed += 1
                     random.seed(seed)
                 generate()
-
-
-
 
 
     def create_subgraph(self):
@@ -181,17 +182,19 @@ class DebateGraph(nx.DiGraph):
         for edge in self.edges:
             print(edge[0], " ===> ",edge[1])
     
-    def draw(self, time, title):
+    def draw(self, time, title, save = False):
         """
         This function draws a graph and saves the image
         """
         path = 'Figs/' + re.sub(  "\:", "_", str(time)) + '/'   # sub to avoid filename errors
-        Path(path).mkdir(parents=True, exist_ok=True)
+        if save:
+            Path(path).mkdir(parents=True, exist_ok=True)
         plt.figure(figsize=(10,5))
         ax = plt.gca()
         ax.set_title(title)
         nx.draw(self, pos=nx.spring_layout(self), labels = {n:str(n) for n in self.nodes})
-        plt.savefig( path +title + '.png', format ="PNG" )
+        if save:
+            plt.savefig( path +title + '.png', format ="PNG" )
         plt.show()
          
 
@@ -212,6 +215,19 @@ class DebateGraph(nx.DiGraph):
     def add_node(self, node):
         if node not in self:
             self.add_nodes_from([(node, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []})])
+    
+    def get_oddity(self, arg):
+        """ Returns 1 if the sequence from the arg to the issue is odd, 0 if it is even
+        odd -> defense node
+        even -> attack node
+        """
+
+        paths = [ p for p in nx.all_simple_paths(self, source=arg, target=self.issue)]
+        # select a random path (bounded rationality)
+
+        path = random.sample(paths, 1)[0]
+        print("PATH from ", arg, " to ", self.issue, " : ", path)
+        return len(path) % 2
 
     
 
@@ -235,6 +251,36 @@ class OpinionGraph(DebateGraph):
     
     def get_argument_weight(self, arg):
         return 1
+
+
+
+
+
+class DebateTree(DebateGraph):
+
+    def __init__(self, issue = None, nodes = None):
+        super().__init__(issue=issue, nodes=nodes)
+    
+
+    def random_initialize(self, nb_args, seed = None):
+        #return super().random_initialize(nb_args, p=p, seed=seed)
+
+        """
+        Function to randomly generated a rooted tree, where the root is the issue, and all edges point towards it. 
+        Method : we generate a random free tree and then root it. 
+        """
+
+        self.issue = 0
+        random_tree = nx.generators.trees.random_tree(nb_args, seed)
+        arguments = [(n, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []}) for n in range(nb_args)]
+        self.add_nodes_from(arguments)
+
+        # rooting by performing a depth first search and then reversing the direction of the edges
+        for edge in nx.algorithms.traversal.depth_first_search.dfs_edges(random_tree, source= self.issue):
+            self.add_edge(edge[1], edge[0])
+        
+
+
 
 
 
