@@ -52,7 +52,7 @@ class DebateGraph(nx.DiGraph):
         upvotes = self.nodes[arg]["upvotes"]
         downvotes = self.nodes[arg]["downvotes"]
         if upvotes == downvotes == 0:
-            return 0.5 # to avoid division by zero
+            return 0.75 # to avoid division by zero
         return sigmoid( 2.5 * (upvotes - downvotes)/(upvotes + downvotes))
     
     
@@ -205,7 +205,7 @@ class DebateGraph(nx.DiGraph):
         
         
     
-    def special_copy(self):
+    def deep_copy(self):
         # A copy which changes the graph object but keeps the same node objects
         """n = DebateGraph(issue = self.issue)
         n.add_nodes_from(self.nodes)
@@ -226,7 +226,7 @@ class DebateGraph(nx.DiGraph):
         # select a random path (bounded rationality)
 
         path = random.sample(paths, 1)[0]
-        print("PATH from ", arg, " to ", self.issue, " : ", path)
+        #print("PATH from ", arg, " to ", self.issue, " : ", path)
         return len(path) % 2
 
     
@@ -250,7 +250,10 @@ class OpinionGraph(DebateGraph):
         return super().view_graph()
     
     def get_argument_weight(self, arg):
-        return 1
+        if arg == self.issue:
+            return 0.75
+        else:
+            return 0.5
 
 
 
@@ -280,6 +283,14 @@ class DebateTree(DebateGraph):
             self.add_edge(edge[1], edge[0])
         
 
+class FlatArgumentTree(DebateTree):
+    ### a non-weighted argument tree
+
+    def get_argument_weight(self, arg):
+        if arg == self.issue:
+            return 0.75
+        else:
+            return 0.5
 
 
 

@@ -21,11 +21,12 @@ class GradualSemantic():
         """
 
         #original_value = self.get_argument_value(debate_graph.get_issue(), debate_graph)
-        new_graph = debate_graph.special_copy()
+        new_graph = debate_graph.deep_copy()
         new_graph.add_node(arg)
         new_graph.add_edges_from(edges)
         new_value = self.get_argument_value(new_graph.get_issue(), new_graph)
 
+        del(new_graph)
         return new_value
 
 
