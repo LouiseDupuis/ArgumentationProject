@@ -28,7 +28,6 @@ class DebateAgent(Agent):
         self.name = unique_id
     
 
-
     def get_position(self, semantic, threshold):   
         """
         Computing the agent's position on the issue
@@ -46,7 +45,7 @@ class DebateAgent(Agent):
 
     
 
-    def get_better_strategies_opinion(self, comfort_zone):
+    def get_better_strategies(self, comfort_zone):
         """
         Iterating through all the possible moves to try to obtain moves that influence the debate
         """
@@ -68,32 +67,7 @@ class DebateAgent(Agent):
                     better_strategies += [(arg, edges)]
         return better_strategies
     
-
-    def get_better_strategies_position(self, public_graph):
-        """
-        Iterating through all the possible moves to try to obtain moves that influence the debate
-        """
-        print()
-        print( "Testing Strategies :")
-
-        better_strategies = []
-        original_value = self.model.semantic.get_argument_value(public_graph.get_issue(), public_graph )
-        print('Original value : ', original_value )
-        unpublished_arguments = self.opinion_graph.nodes - public_graph.nodes
-        for arg in unpublished_arguments:
-            print("Testing argument ", arg)
-            edges = self.model.argument_graph.get_edges_between(arg, public_graph )
-            new_value = self.model.semantic.get_argument_effect(arg, edges, public_graph)
-            print('New value : ', new_value)
-            if self.position == 'PRO':
-                if new_value > original_value:
-                    better_strategies += [(arg, edges)]
-            else:
-                if new_value < original_value:
-                    better_strategies += [(arg, edges)]
-        
-        return better_strategies
-    
+  
 
     def __str__(self) -> str:
         return str(self.name)
@@ -163,66 +137,7 @@ class DebateAgent(Agent):
                 else:
                     self.model.public_graph.add_downvote(arg, self)
 
-    def step_pos(self):
-
-        public_graph = self.model.public_graph
-        print()
-
-        # 1 : position
-        self.get_position(self.model.get_semantic(), self.threshold)
-        print("Agent's position : ", self.position )
-        self.opinion_graph.view_graph()
-
-        # choosing amongst the better strategies 
-        better_strategies = self.get_better_strategies(public_graph)
-        if len(better_strategies) > 0:
-            strategy = random.sample(better_strategies, 1)[0]
-        else:
-             strategy = 'NOTHING'
-        print("Strategy : ", strategy[0])
-        self.current_strategy = strategy
-        # model rememebers strategy
-
-        # learning
-
-        # voting
         
-        return strategy
-    
-        
-    
-    def learn_pos(self):
-        
-        """ 
-        Learning Step, where the agent applies the learning policy to change its opinion
-        """
-
-        previous_graph = self.model.state[-1]
-        new_arguments = self.model.public_graph.nodes - previous_graph.nodes
-        unknown_arguments = new_arguments - self.opinion_graph.nodes
-    
-        for arg in unknown_arguments:
-                if self.learning_strategy(arg):
-                    edges = self.model.public_graph.get_edges_between(arg, self.opinion_graph)
-                    self.opinion_graph.add_node(arg)
-                    self.opinion_graph.add_edges_from(edges)
-    
-    def vote_pos(self): 
-
-        previous_graph = self.model.state[-1]
-        new_arguments = self.model.public_graph.nodes - previous_graph.nodes
-
-        # upvoting the arguments which are in favor of the agent's goal
-        pos = self.position 
-        for arg in new_arguments:
-            if not self.model.public_graph.check_if_agent_already_voted(arg, self):
-                if self.voting_strategy(pos, arg, self.model.public_graph):
-                    self.model.public_graph.add_upvote(arg, self)
-                else:
-                    self.model.public_graph.add_downvote(arg, self)
-
-
-    
     def advance(self):
         # model implement strategy
         self.model.implement_strategy( self.current_strategy, self)

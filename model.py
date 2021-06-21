@@ -148,21 +148,7 @@ class OnlineDebate(Model):
         self.current_value = self.semantic.get_argument_value(self.public_graph.get_issue(), self.public_graph)
         print()
     
-    def step_pos(self, i):
-        print()
-        print()
-        print("------------------ Step ", i, "---------------------------------------")
-        print()
-        print("Current Public Graph : ")
-        self.public_graph.view_graph()
-        self.state = [self.public_graph.deep_copy()]
-        self.strategies += [dict()]
-        self.positions += [dict()]
-        self.check_strategies()
-        self.schedule.step()
-        self.current_value = self.semantic.get_argument_value(self.public_graph.get_issue(), self.public_graph)
-        print()
-
+   
 
     def run_model(self, step_count, game_stats):
 
@@ -205,45 +191,4 @@ class OnlineDebate(Model):
         return game_stats
 
 
-    def run_model_pos(self, step_count, game_stats):
-
-        stats = {'Original Value' : self.semantic.get_argument_value(self.argument_graph.get_issue(), self.argument_graph), 'Final Value' : None, 'Number of Agents' : self.num_agents, 'Orig. Number of PRO Agents' : None, 'Final Number of PRO Agents' : None, 'Nb Change of Mind' : None, 'Steps' : None, 'Nb of Arguments' : len(self.argument_graph), 'Nb of Arguments of Agents' : len(self.agent_argument_set), 'Final Nb of Arguments' : None}
-        steps= 0
-        for i in range(step_count):
-            self.step(i)
-            if self.check_equilibrium():
-                steps = i
-                break
-        
-        print("====================================== Debate Over ============================================")
-
-        #updating the stats of the debate :
-        stats['Final Value'] = self.semantic.get_argument_value(self.public_graph.get_issue(), self.public_graph)
-        stats['Final Nb of Arguments'] = len(self.public_graph)
-        stats['Steps'] = steps
-
-        # computing the number of agents in their comfort zone at each step of the debate
-        stats['Orig. Number of PRO Agents'] = list(self.opinions[0].values()).count('PRO')
-        stats['Final Number of PRO Agents'] = list(self.opinions[-1].values()).count('PRO')
-
-
-        # computing how many times in total agents changed their minds on the issue
-        number_of_change_of_minds = 0
-        for i in range(self.num_agents):
-            pos = self.positions[0][i]
-            for s in range(steps):
-                new_pos = self.positions[s][i]
-                if pos != new_pos:
-                    number_of_change_of_minds += 1
-                pos = new_pos
-        stats['Nb Change of Mind'] = number_of_change_of_minds
-
-        game_stats = game_stats.append(stats, ignore_index = True)
-
-
-        print("Final Value of the Issue : ", stats['Final Value'])
-        print("Original Value of the Issue : ", stats['Original Value'])
-        if self.show_images:
-            self.public_graph.draw( self.get_time(), "Final_graph", save = self.save_images)
-        return game_stats
-
+   
