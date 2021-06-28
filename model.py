@@ -1,6 +1,7 @@
 
 
 from copy import Error
+from re import S
 from agents import DebateAgent
 from graphs import DebateGraph
 from mesa import Model
@@ -22,7 +23,7 @@ class OnlineDebate(Model):
     )
 
     def __init__(
-        self, num_agents, argument_graph, semantic, threshold, learning_strategy, voting_strategy, subgraph_creation, save, show_images
+        self, num_agents, argument_graph, semantic, comfort_limit, learning_strategy, p_learn, voting_strategy, subgraph_creation, save, show_images
     ):
         """
         Create a new model with the given parameters.
@@ -38,7 +39,7 @@ class OnlineDebate(Model):
         self.num_agents = num_agents
         self.argument_graph = argument_graph
         self.semantic = semantic
-        self.threshold = threshold
+        self.comfort_limit = comfort_limit
         self.subgraph_creation = subgraph_creation
         self.save_images = save
         self.show_images = show_images
@@ -49,15 +50,12 @@ class OnlineDebate(Model):
 
         self.time = datetime.now() # a time marker to help save all relevant informations
 
-        self.current_value = self.semantic.get_argument_value(self.public_graph.get_issue(), self.public_graph)
+        self.current_value = self.semantic.get_argument_value(self.public_graph.get_issue(), self.public_graph) # the current vlue of the issue in the public board
 
         self.state = [] # a list keeping track of the last state of the game
         self.strategies = [] # a list keeping track of all of the agent's strategies during the game
-        self.positions = []  # a list keeping track of all of the agent's positions during the game
         self.opinions = [] # a list keeping track of all of the agent's opinions during the game
-        self.number_of_change_of_minds = 0 # a counter which counts how many times an agent has changed its position on the issue
-        
-        self.agent_argument_set = set()
+        self.agent_argument_set = set() # the set containing all of the arguments known by the agents
 
         print("=============== MODEL INITIALIZATION =========================================")
         print()
@@ -78,7 +76,7 @@ class OnlineDebate(Model):
             opinion_graph.view_graph()
             self.agent_argument_set = self.agent_argument_set.union(set(list(opinion_graph.nodes)))
             
-            agent = DebateAgent(i, model=self, opinion_graph = opinion_graph, learning_strategy=learning_strategy, threshold=threshold, voting_strategy=voting_strategy)
+            agent = DebateAgent(i, model=self, opinion_graph = opinion_graph, learning_strategy=learning_strategy, p_learn = p_learn, voting_strategy=voting_strategy, comfort_limit=self.comfort_limit)
             if show_images:
                 opinion_graph.draw(self.get_time(), "Agent " + str(i) + ' ' + agent.get_position(self.semantic, self.threshold), save = save)
             self.schedule.add(agent)
@@ -128,6 +126,25 @@ class OnlineDebate(Model):
         print("End of testing")
         print(self.current_value)
         return self.strategy_evaluation
+
+    
+
+    def get_merged_value(self):
+        # create the merged model and compute its value 
+        merged_debate = self.argument_graph.deep_copy()
+        for arg in self.merged_debate.nodes:
+            if arg not in self.agent_argument_set:
+                merged_debate.remove_node(arg)
+        # adding the votes in the merged version
+        for agent in self.schedule.agents:
+            for arg in self.merged_debate.nodes:
+                if arg in agent.opinion_graph.nodes:
+                    merged_debate.add_upvote(arg,agent)
+                else:
+                    merged_debate.add_downvote(arg,agent)
+        merged_value = self.semantic.get_argument_value(merged_debate.get_issue(), merged_debate)
+        del(merged_debate)
+        return merged_value
         
 
 
@@ -152,7 +169,7 @@ class OnlineDebate(Model):
 
     def run_model(self, step_count, game_stats):
 
-        stats = {'Original Value' : self.semantic.get_argument_value(self.argument_graph.get_issue(), self.argument_graph), 'Final Value' : None, 'Number of Agents' : self.num_agents, 'Orig. Number of PRO Agents' : None, 'Final Number of PRO Agents' : None, 'Nb Change of Mind' : None, 'Steps' : None, 'Nb of Arguments' : len(self.argument_graph), 'Nb of Arguments of Agents' : len(self.agent_argument_set), 'Final Nb of Arguments' : None}
+        stats = {'Original Value' : self.semantic.get_argument_value(self.argument_graph.get_issue(), self.argument_graph), 'Final Value' : None, 'Number of Agents' : self.num_agents, 'Nb Change of Mind' : None, 'Steps' : None, 'Nb of Arguments' : len(self.argument_graph), 'Nb of Arguments of Agents' : len(self.agent_argument_set), 'Final Nb of Arguments' : None}
         steps= 0
         for i in range(step_count):
             self.step(i)
@@ -165,23 +182,39 @@ class OnlineDebate(Model):
         #updating the stats of the debate :
         stats['Final Value'] = self.semantic.get_argument_value(self.public_graph.get_issue(), self.public_graph)
         stats['Final Nb of Arguments'] = len(self.public_graph)
-        stats['Steps'] = steps
-        stats['Orig. Number of Agents in Comfort Zone'] = list(self.positions[0].values()).count('PRO')
-        stats['Final Number of Agents in Comfort Zone'] = list(self.positions[-1].values()).count('PRO')
+        stats['Steps'] = steps + 1
 
+        # computing the nb of agents in their comfort zone 
 
+        # at the beginning of the debate
+        agents_in_comfort_zone = []
+        for agent, opinion in self.opinions[0].items():
+            op, comfort_limit, model_value = opinion
+            if model_value >= op - comfort_limit and model_value <= op + comfort_limit:
+                agents_in_comfort_zone += [agent]
+        stats['Beginning - Nb of Agents in C. Z.'] = len(agents_in_comfort_zone)
+
+        # after the end of the debate
+        agents_in_comfort_zone = []
+        for agent in self.schedule.agents:
+            op = agent.get_opinion(self.semantic)
+            if self.current_value >=  op - agent.comfort_limit and self.current_value <= op + agent.comfort_limit:
+                agents_in_comfort_zone += [agent]
+
+        stats['End -Nb of Agents in C. Z.'] = len(agents_in_comfort_zone)
         # computing how many times in total agents changed their minds on the issue
-        """number_of_change_of_minds = 0
+        number_of_change_of_minds = 0
         for i in range(self.num_agents):
-            pos = self.positions[0][i]
+            opinion = self.opinions[0][i][0]
             for s in range(steps):
-                new_pos = self.positions[s][i]
-                if pos != new_pos:
+                new_opinion = self.opinions[s][i][0]
+                if opinion != new_opinion:
                     number_of_change_of_minds += 1
-                pos = new_pos
-        stats['Nb Change of Mind'] = number_of_change_of_minds"""
+                opinion = new_opinion
+        stats['Nb Change of Mind'] = number_of_change_of_minds
 
-        game_stats = game_stats.append(stats, ignore_index = True)
+        stats_df = pd.DataFrame.from_records([stats])
+        game_stats = pd.concat([game_stats, stats_df], sort=False).fillna(0)
 
 
         print("Final Value of the Issue : ", stats['Final Value'])

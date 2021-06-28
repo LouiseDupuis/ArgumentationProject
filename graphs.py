@@ -1,7 +1,6 @@
 
 import networkx as nx
 import random
-from argument import Argument
 from networkx.classes.function import set_node_attributes
 import copy
 import matplotlib.pyplot as plt
@@ -55,6 +54,9 @@ class DebateGraph(nx.DiGraph):
             return 0.75 # to avoid division by zero
         return sigmoid( 2.5 * (upvotes - downvotes)/(upvotes + downvotes))
     
+    def add_node(self, node):
+        if node not in self:
+            self.add_nodes_from([(node, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []})])
     
     def add_upvote(self, arg, agent):
         upvotes = self.nodes[arg]["upvotes"]
@@ -182,16 +184,19 @@ class DebateGraph(nx.DiGraph):
         for edge in self.edges:
             print(edge[0], " ===> ",edge[1])
     
-    def draw(self, time, title, save = False):
+    def draw(self, time = None, title = None, save = False):
         """
         This function draws a graph and saves the image
         """
-        path = 'Figs/' + re.sub(  "\:", "_", str(time)) + '/'   # sub to avoid filename errors
+
+        if time is not None:
+            path = 'Figs/' + re.sub(  "\:", "_", str(time)) + '/'   # sub to avoid filename errors
         if save:
             Path(path).mkdir(parents=True, exist_ok=True)
         plt.figure(figsize=(10,5))
         ax = plt.gca()
-        ax.set_title(title)
+        if title is not None:
+            ax.set_title(title)
         nx.draw(self, pos=nx.spring_layout(self), labels = {n:str(n) for n in self.nodes})
         if save:
             plt.savefig( path +title + '.png', format ="PNG" )
@@ -212,14 +217,10 @@ class DebateGraph(nx.DiGraph):
         n.add_edges_from(self.edges)"""
         return copy.deepcopy(self)
     
-    def add_node(self, node):
-        if node not in self:
-            self.add_nodes_from([(node, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []})])
     
     def get_oddity(self, arg):
         """ Returns 1 if the sequence from the arg to the issue is odd, 0 if it is even
         odd -> defense node
-        even -> attack node
         """
 
         paths = [ p for p in nx.all_simple_paths(self, source=arg, target=self.issue)]
@@ -239,7 +240,6 @@ class OpinionGraph(DebateGraph):
     Parameters : 
             issue = the main issue of the debate
             parent : the parent DebateGraph
-            ? Agent ? 
     """
 
     def __init__(self, parent, issue = None, nodes = None):
@@ -255,6 +255,62 @@ class OpinionGraph(DebateGraph):
         else:
             return 0.5
 
+
+class DebateDAG(DebateGraph):
+    """ A directed Acyclic Graph (DAG) 
+    """
+
+    def __init__(self, issue = None, nodes = None):
+        super().__init__(issue=issue, nodes=nodes)
+
+    def random_initialize(self, nb_args, p=0.5, seed=None, connected = True):
+        self.issue = 0
+        arguments = [(i, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []}) for i in range( nb_args)]
+        self.add_nodes_from(arguments)
+
+        G=nx.fast_gnp_random_graph(nb_args,p,directed=False, seed = seed)
+
+        for (u,v) in G.edges():
+            if u < v:
+                #self.add_nodes_from([(u, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []}), (v, {"upvotes": 0, "up_list" : [], "downvotes" : 0, "down_list" : []})])
+                self.add_edge(v,u)
+        # optionnal - to connect every node to a path to the issue
+        if connected: 
+            # first, we connect all connected components of the graph
+            U = self.to_undirected() # undirected version of our graph
+            print(U)
+            while not nx.is_connected(U):
+                main_component = nx.node_connected_component(U, self.issue)
+                components = nx.connected_components(U)
+                for component in components:
+                    print(component)
+                    if self.issue not in component:
+                        u = random.choice(list(component))
+                        v = random.choice(list(main_component))
+                        self.add_edge(u,v)
+                U = nx.Graph(self.edges)
+
+
+
+
+            # once the graph is connected, we inverse the edges to ensure that every node has a path to the issue 
+            ancestors = nx.ancestors(self, self.issue)
+            ancestors.add(self.issue)
+            unconnected_nodes = self.nodes -ancestors # nodes which are not connected to the issue
+            while len(unconnected_nodes) >0:
+                ancestors = nx.ancestors(self, self.issue)
+                ancestors.add(self.issue)
+                unconnected_nodes = self.nodes - ancestors
+                for node in unconnected_nodes:
+                    ancestor_neighbor = [a for a in ancestors if (a, node) in self.edges]
+                    if len(ancestor_neighbor)>0:
+                            for d in ancestor_neighbor:
+                                self.add_edge(node,d)
+                                self.remove_edge(d,node)
+        assert nx.is_directed_acyclic_graph(self)
+
+
+       
 
 
 

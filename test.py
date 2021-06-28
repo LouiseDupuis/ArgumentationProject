@@ -1,5 +1,4 @@
-from graphs import DebateGraph, OpinionGraph
-from argument import Argument
+from graphs import DebateDAG, DebateGraph, OpinionGraph
 import networkx as nx
 from semantic import GradualSemantic, scoring_function_hbs
 from model import OnlineDebate
@@ -130,4 +129,16 @@ def test_previous_graph():
     print(m.state[0])
     print(m.state[-1])
 
-test_previous_graph()
+
+def test_DAG():
+    n = 7
+    p = 0.5
+    seed = 40
+    argument_graph = DebateDAG()
+    argument_graph.random_initialize(n,p=p, seed = seed, connected=False)
+    #argument_graph.view_graph()
+    argument_graph.draw()
+    argument_graph.random_initialize(n,p=p, seed = seed, connected=True)
+    argument_graph.draw()
+
+test_DAG()

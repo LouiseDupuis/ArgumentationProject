@@ -14,18 +14,19 @@ class DebateAgent(Agent):
         Args:
             opinion_graph : the agent's own set of arguments
             learning_strategy : the name (?) of the agent's learning strategy 
-            
+            threshold : the threshold to determine an agent's position on the issue
         """
         super().__init__(unique_id, model)
         self.opinion_graph = opinion_graph
         self.learning_strategy = learning_strategy
         self.p_learn = p_learn
         self.voting_strategy = voting_strategy
+        self.position = None  # position = 'PRO' or 'CON'
         self.opinion = None # opinion = value of the issue in the graph 
         self.comfort_limit = comfort_limit
         self.current_strategy = None
         self.name = unique_id
-
+    
     
     def get_opinion(self, semantic):
         self.opinion = semantic.get_argument_value(self.opinion_graph.get_issue(), self.opinion_graph)
@@ -115,6 +116,7 @@ class DebateAgent(Agent):
         new_arguments = self.model.public_graph.nodes - previous_graph.nodes
 
         # upvoting the arguments which are in favor of the agent's goal
+        pos = self.position 
     
         for arg in new_arguments:
             if not self.model.public_graph.check_if_agent_already_voted(arg, self):
