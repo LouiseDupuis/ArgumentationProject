@@ -37,8 +37,6 @@ class DebateAgent(Agent):
         """
         Iterating through all the possible moves to try to obtain moves that influence the debate
         """
-        print()
-        print( "Testing Strategies :")
 
         better_strategies = []
 
@@ -54,6 +52,24 @@ class DebateAgent(Agent):
                     edges = self.model.argument_graph.get_edges_between(arg, self.model.public_graph )
                     better_strategies += [(arg, edges)]
         return better_strategies
+    
+    def get_comfort_strategies(self):
+        """ Identifying strategies that have a good chance to keep the debate inside the agent's comfort zone. 
+        """
+        comfort_strategies = []
+
+        original_value = self.model.current_value
+        print('Public value : ', original_value )
+
+        for arg in self.opinion_graph.nodes:
+            if arg in self.model.strategy_evaluation.keys():
+                new_value = self.model.strategy_evaluation[arg]
+                if new_value > self.opinion - self.comfort_limit and new_value < self.opinion + self.comfort_limit:
+                    edges = self.model.argument_graph.get_edges_between(arg, self.model.public_graph )
+                    comfort_strategies += [(arg, edges)]
+        return comfort_strategies
+
+
     
   
 
@@ -83,7 +99,12 @@ class DebateAgent(Agent):
             else:
                 strategy = 'NOTHING'
         else:
-            strategy = 'NOTHING'
+            #playing any move that allows the player to stay in her comfort zone
+            comfort_strategies = self.get_comfort_strategies()
+            if len(comfort_strategies) > 0:
+                strategy = random.choice(comfort_strategies)
+            else:
+                strategy = 'NOTHING'
         print("Strategy : ", strategy[0])
         self.current_strategy = strategy
         

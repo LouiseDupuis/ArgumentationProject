@@ -2,12 +2,12 @@
 
 from copy import Error
 from re import S
-from agents import DebateAgent
-from graphs import DebateGraph
+from ArgumentationProject.agents import DebateAgent
+from ArgumentationProject.graphs import DebateGraph
 from mesa import Model
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
-from schedule import SimultaneousDebateActivation
+from ArgumentationProject.schedule import SimultaneousDebateActivation
 import time 
 from datetime import datetime
 import pandas as pd

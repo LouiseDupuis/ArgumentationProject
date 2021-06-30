@@ -1,7 +1,7 @@
-from graphs import DebateDAG, DebateGraph, OpinionGraph
+from ArgumentationProject.graphs import DebateDAG, DebateGraph, OpinionGraph
 import networkx as nx
-from semantic import GradualSemantic, scoring_function_hbs
-from model import OnlineDebate
+from ArgumentationProject.semantic import GradualSemantic, scoring_function_hbs
+from ArgumentationProject.model import OnlineDebate
 
 def test_1():
     for i in range(2, 25):

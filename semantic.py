@@ -1,6 +1,6 @@
 
 import copy
-from graphs import OpinionGraph
+from ArgumentationProject.graphs import OpinionGraph
 
 class GradualSemantic():
     """ A gradual Semantic which can compute the overall strength of the arguments of a weighted graph
