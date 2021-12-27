@@ -47,12 +47,22 @@ class DebateGraph(nx.DiGraph):
 
     def get_argument_weight(self, arg):
         if arg == self.issue:
-            return 0.75
+            return 1
         upvotes = self.nodes[arg]["upvotes"]
         downvotes = self.nodes[arg]["downvotes"]
         if upvotes == downvotes == 0:
-            return 0.75 # to avoid division by zero
+            return 1 # to avoid division by zero
+        if downvotes == 0:
+            return 1
+        if upvotes == 0:
+            return 0
         return sigmoid( 2.5 * (upvotes - downvotes)/(upvotes + downvotes))
+    
+    def get_argument_votes(self,arg):
+        upvotes = self.nodes[arg]["upvotes"]
+        downvotes = self.nodes[arg]["downvotes"]
+        return upvotes, downvotes
+
     
     def add_node(self, node):
         if node not in self:
@@ -120,14 +130,14 @@ class DebateGraph(nx.DiGraph):
                 generate()
 
 
-    def create_subgraph(self):
+    def create_subgraph_connected(self):
 
         """ This function creates a random DebateGraph object which is a subgraph of the parent graph 
-        It is a connected graph which contains the issue 
+        It is a connected graph which contains the issue. 
         """
 
         # generating a random size for the subgraph
-        S = random.randint(2, self.get_size())
+        S = random.randint(1, self.get_size())
         print("Size of subgraph : ", S)
 
         # Initialization
@@ -136,7 +146,7 @@ class DebateGraph(nx.DiGraph):
         current_node = self.issue
 
         # building loop
-        while s_graph.get_size() < S-1:
+        while s_graph.get_size() < S:
 
             #selecting a random edge 
             edges_toward_cn = [e for e in list(self.in_edges(current_node)) if e[0] not in s_graph.nodes]
@@ -166,7 +176,7 @@ class DebateGraph(nx.DiGraph):
     
     def create_subgraph_new(self):
         # generating a random size for the subgraph
-        S = random.randint(2, self.get_size())
+        S = random.randint(1, self.get_size())
         print("Size of subgraph : ", S)
         random_nodes = random.sample(list(self.nodes - set([self.issue ])), S -1)
         sub_graph = copy.deepcopy(self.subgraph(random_nodes + [self.issue]))
@@ -231,6 +241,16 @@ class DebateGraph(nx.DiGraph):
         return len(path) % 2
 
     
+    def get_influence_index(self, arg):
+        """Returns an influence index computed from the graph's distance to the issue
+        """
+
+        paths = [ p for p in nx.all_simple_paths(self, source=arg, target=self.issue)]
+        if len(paths) == 0:
+            return 0
+        else:
+            path = random.sample(paths, 1)[0]
+            return 1/len(path)
 
 
 
@@ -251,9 +271,12 @@ class OpinionGraph(DebateGraph):
     
     def get_argument_weight(self, arg):
         if arg == self.issue:
-            return 0.75
+            return 1
         else:
-            return 0.5
+            return 1
+    
+    def deep_copy(self):
+        return super().deep_copy()
 
 
 class DebateDAG(DebateGraph):
@@ -313,8 +336,6 @@ class DebateDAG(DebateGraph):
        
 
 
-
-
 class DebateTree(DebateGraph):
 
     def __init__(self, issue = None, nodes = None):
@@ -337,8 +358,12 @@ class DebateTree(DebateGraph):
         # rooting by performing a depth first search and then reversing the direction of the edges
         for edge in nx.algorithms.traversal.depth_first_search.dfs_edges(random_tree, source= self.issue):
             self.add_edge(edge[1], edge[0])
-        
+    
+    
 
+
+        
+"""
 class FlatArgumentTree(DebateTree):
     ### a non-weighted argument tree
 
@@ -346,7 +371,7 @@ class FlatArgumentTree(DebateTree):
         if arg == self.issue:
             return 0.75
         else:
-            return 0.5
+            return 0.5"""
 
 
 

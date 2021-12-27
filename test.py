@@ -131,6 +131,7 @@ def test_previous_graph():
 
 
 def test_DAG():
+    print("TEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEST")
     n = 7
     p = 0.5
     seed = 40
@@ -141,4 +142,3 @@ def test_DAG():
     argument_graph.random_initialize(n,p=p, seed = seed, connected=True)
     argument_graph.draw()
 
-test_DAG()
