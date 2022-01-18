@@ -1,8 +1,12 @@
 
 
 import math 
-
 import numpy as np
+
+
+"""
+This file is not direcly used in the main project. It was used to investigate formal properties of the model.
+"""
 
 x = 4
 N = 20
@@ -10,7 +14,7 @@ A = 7
 
 
 
-# calcul de la probabilité de tirer k attaquants 
+# computing the proba of drawing four direct attackers (of the issue)
 
 def p_X_k(k):
     t = 0
@@ -23,7 +27,7 @@ def p_X_k(k):
 def proba_hyper_geo(k, pN, qN,n, N):
     """ Calcul de la proba de la loi hypergéométrique avec les paramètres spécifiés"""
     return math.comb(pN,k) * math.comb(qN, n-k)/math.comb(N,n)
-# construction de la matrice de transition de la chaîne de Markov 
+# constructing the transition matrix of a Markov chain 
 
 def build_M():
     M = []
@@ -41,19 +45,6 @@ def build_M():
 
     print(M)
     return M
-
-"""s = 0
-for l in range(7):
-    print(l, p_X_k(l))
-    s += p_X_k(l)
-print(s)
-"""
-"""
-t= 0 
-i = 10
-for k in range(x+1):
-    t+= proba_hyper_geo(k, x, N-x, i, N)
-print(t)"""
 
 M = build_M()
 
